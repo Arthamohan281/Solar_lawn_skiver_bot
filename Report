@@ -1,1 +1,241 @@
+#include <Ultrasonic.h> // Include Ultrasonic sensor library
 
+// Motor control pins
+
+Const int motorLeftPin1 = 5;
+
+Const int motorLeftPin2 = 6;
+
+Const int motorRightPin1 = 9;
+
+Const int motorRightPin2 = 10;
+
+// Ultrasonic sensor pins
+
+Const int trigPin = 7;
+
+Const int echoPin = 8;
+
+Ultrasonic ultrasonic(trigPin, echoPin);
+
+// Pesticide spray control pin
+
+Const int sprayPin = 3;
+
+// Variables for obstacle detection and plot navigation
+
+Int distance;
+
+Int safeDistance = 30; // Distance in cm to avoid obstacles
+
+Unsigned long plotBoundaryTime = 5000; // Time to reach plot boundary in ms
+
+Unsigned long startTime;
+
+// Spray timing
+
+Unsigned long sprayStartTime = 0;
+
+Unsigned long sprayInterval = 1000; // Spray every 1000 ms
+
+Void setup() {
+
+// Set motor pins as output
+
+pinMode(motorLeftPin1, OUTPUT);
+
+pinMode(motorLeftPin2, OUTPUT);
+
+pinMode(motorRightPin1, OUTPUT);
+
+pinMode(motorRightPin2, OUTPUT);
+
+// Set spray control pin as output
+
+pinMode(sprayPin, OUTPUT);
+
+digitalWrite(sprayPin, LOW); // Initially off
+
+Serial.begin(9600); // Initialize Serial monitor
+
+// Start time for row traversal
+
+startTime = millis();
+
+}
+
+Void loop() {
+
+Distance = ultrasonic.read(); // Read distance from ultrasonic sensor
+
+// Check if the robot has reached the end of the plot
+
+If (millis() – startTime > plotBoundaryTime) {
+
+reachPlotEnd(); // Perform 90-degree turns to go to the next row
+
+startTime = millis(); // Reset timer for the new row
+
+} else if (distance < safeDistance) {
+
+avoidObstacle(); // Avoid obstacle if within safe distance
+
+} else {
+
+moveForward(); // Continue forward if clear
+
+activateSprayNonBlocking(); // Non-blocking spray activation
+
+}
+
+Delay(50); // Small delay for sensor stabilization
+
+}
+
+// Function to move forward
+
+Void moveForward() {
+
+digitalWrite(motorLeftPin1, HIGH);
+
+digitalWrite(motorLeftPin2, LOW);
+
+digitalWrite(motorRightPin1, HIGH);
+
+digitalWrite(motorRightPin2, LOW);
+
+}
+
+// Function to stop
+
+Void stop() {
+
+digitalWrite(motorLeftPin1, LOW);
+
+digitalWrite(motorLeftPin2, LOW);
+
+digitalWrite(motorRightPin1, LOW);
+
+digitalWrite(motorRightPin2, LOW);
+
+}
+
+// Function to handle reaching the plot boundary and move to next row
+
+Void reachPlotEnd() {
+
+Stop();
+
+Delay(500);
+
+// Turn right 90 degrees
+
+turnRight();
+
+delay(1000); // Adjust turn duration if needed
+
+// Move forward briefly
+
+moveForward();
+
+delay(1000); // Move forward duration
+
+// Turn right another 90 degrees to start the next row
+
+turnRight();
+
+delay(1000); // Adjust turn duration if needed
+
+stop();
+
+delay(500);
+
+}
+
+// Function to turn right 90 degrees
+
+Void turnRight() {
+
+digitalWrite(motorLeftPin1, HIGH);
+
+digitalWrite(motorLeftPin2, LOW);
+
+digitalWrite(motorRightPin1, LOW);
+
+digitalWrite(motorRightPin2, HIGH);
+
+// Function to turn left 90 degrees
+
+Void turnLeft() {
+
+digitalWrite(motorLeftPin1, LOW);
+
+digitalWrite(motorLeftPin2, HIGH);
+
+digitalWrite(motorRightPin1, HIGH);
+
+digitalWrite(motorRightPin2, LOW);
+
+}
+
+// New obstacle avoidance function
+
+Void avoidObstacle() {
+
+Stop();
+
+Delay(500);
+
+// Step 1: Move right briefly to create space
+
+turnRight();
+
+delay(1000); // Adjust for slight right movement to clear obstacle
+
+stop();
+
+delay(500);
+
+// Step 2: Turn 90 degrees to the right to move past the obstacle
+
+turnRight();
+
+delay(1000); // Adjust for 90-degree turn
+
+stop();
+
+delay(500);
+
+// Move forward to bypass the obstacle
+
+moveForward();
+
+delay(1000); // Adjust as needed based on obstacle size
+
+// Step 3: Turn left 90 degrees to get back on track
+
+turnLeft();
+
+delay(1000); // Adjust for 90-degree left turn
+
+stop();
+
+delay(500);
+
+}
+
+// Non-blocking function to activate pesticide spray at intervals
+
+Void activateSprayNonBlocking() {
+
+If (millis() – sprayStartTime >= sprayInterval) {
+
+digitalWrite(sprayPin, HIGH); // Turn on spray
+
+delay(100); // Small delay to ensure spray is activated
+
+digitalWrite(sprayPin, LOW); // Turn off spray
+
+sprayStartTime = millis(); // Reset spray timer
+
+}
